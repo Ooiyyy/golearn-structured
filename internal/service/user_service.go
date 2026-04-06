@@ -25,7 +25,7 @@ func NewUserService(r *repository.UserRepository) *UserService {
 // Login memvalidasi username dan password, serta mengembalikan Token JWT jika berhasil.
 func (s *UserService) Login(username, password string, secret []byte) (string, error) {
 	// 1. Ambil data user dari tabel berdasarkan nama.
-	user, hashed, err := s.repo.GetByUsername(username)
+	id, user, hashed, err := s.repo.GetByUsername(username)
 	if err != nil {
 		return "", fmt.Errorf("username atau password salah")
 	}
@@ -39,6 +39,7 @@ func (s *UserService) Login(username, password string, secret []byte) (string, e
 	// 3. Jika berhasil login, atur klaim (isi konten) untuk Token JWT ini (JWT claims).
 	// Token diatur expired atau kadaluwarsa dalam 1 jam ke depan untuk keamanan.
 	claims := jwt.MapClaims{
+		"id":       id,
 		"username": user,
 		"exp":      time.Now().Add(time.Hour * 1).Unix(),
 	}
@@ -101,11 +102,11 @@ func (s *UserService) UpdatePassword(username, password string) error {
 }
 
 // GetProfile menarik data ringkas tentang pengguna
-func (s *UserService) GetProfile(username string) (string, error) {
+func (s *UserService) GetProfile(id int, username string) (int, string, error) {
 	// Kita hanya perlu menyedot profil dari tabel saat ini.
-	user, err := s.repo.GetProfile(username)
+	id, user, err := s.repo.GetProfile(id, username)
 	if err != nil {
-		return "", fmt.Errorf("user tidak ditemukan")
+		return 0, "", fmt.Errorf("user tidak ditemukan")
 	}
-	return user, nil
+	return id, user, nil
 }

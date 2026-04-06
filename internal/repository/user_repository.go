@@ -15,14 +15,15 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 // GetByUsername mengambil data username dan password berdasarkan nama user.
-func (r *UserRepository) GetByUsername(username string) (string, string, error) {
+func (r *UserRepository) GetByUsername(username string) (int, string, string, error) {
 	var user, password string
+	var userID int
 
 	// QueryRow digunakan untuk mengambil tepat SATU baris data (karena hasil username pasti satu).
 	// Scan() menyalin data dari kolom hasil database ke alamat memori variabel 'user' dan 'password'.
-	err := r.DB.QueryRow("SELECT username, password FROM users WHERE username = ?", username).Scan(&user, &password)
+	err := r.DB.QueryRow("SELECT id, username, password FROM users WHERE username = ?", username).Scan(&userID, &user, &password)
 
-	return user, password, err // Return nilai sekaligus dengan tipe yang dijanjikan
+	return userID, user, password, err // Return nilai sekaligus dengan tipe yang dijanjikan
 }
 
 // IsUserExist mengecek apakah username tertentu sudah pernah di daftarkan.
@@ -54,10 +55,11 @@ func (r *UserRepository) UpdatePassword(username, password string) error {
 }
 
 // GetProfile mengambil data username dan dibungkus di kembalian saja.
-func (r *UserRepository) GetProfile(username string) (string, error) {
+func (r *UserRepository) GetProfile(id int, username string) (int, string, error) {
+	var userID int
 	var user string
 
-	err := r.DB.QueryRow("SELECT username FROM users WHERE username = ?", username).Scan(&user)
+	err := r.DB.QueryRow("SELECT id, username FROM users WHERE id = ?", id).Scan(&userID, &user)
 
-	return user, err
+	return userID, user, err
 }

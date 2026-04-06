@@ -67,6 +67,10 @@ func JWT(secret []byte) gin.HandlerFunc {
 		// Supaya handler rute asli selanjutnya tahu username siapa yang sedang membuka URL ini.
 		// ctx := context.WithValue(r.Context(), "username", username)
 		c.Set("username", username)
+		idFloat, ok := claims["id"].(float64)
+		if ok {
+			c.Set("id", int(idFloat))
+		}
 
 		// 6. Jalankan "next" yang berarti Handler inti (misal file handler.Profile) dipersilahkan berjalan dengan context lengkap.
 		// next(w, r.WithContext(ctx))

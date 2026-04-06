@@ -25,6 +25,7 @@ func NewAuthHandler(s *service.UserService, secret []byte) *AuthHandler {
 func (h *AuthHandler) Login(c *gin.Context) {
 	// 1. Buat cetakan tipe data anonim untuk menampung variabel JSON dari input body
 	var req struct {
+		ID       int    `json:"id"`
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
@@ -93,10 +94,11 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 	// Ingat variabel r.Context() yang didekorasi pada Middleware JWT kita?
 	// Kini bagian profil bisa menyadap `username` dari latar belakang Konteks data tersebut dengan pasti!
 	// Kode `.(string)` dinamakan "Type Assertion", memastikan pemaksaan tipenya adalah string.
+	id := c.GetInt("id")
 	username := c.GetString("username")
 
 	// Ambil keterangan data pribadi dari MySQL lewat jembatan Service -> Repository.
-	user, err := h.service.GetProfile(username)
+	id, user, err := h.service.GetProfile(id, username)
 	if err != nil {
 		// Kali ini menggunakan utils dari fungsi utils/response.go yang dibuat spesifik agar lebih estetik format JSON kembaliannya.
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -107,7 +109,10 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 
 	// Gunakan alat tolong kembalikan Success dengan memanggil helper utils.
 	c.JSON(http.StatusOK, gin.H{
-		"username": user,
+		"data": gin.H{
+			"id":       id,
+			"username": user,
+		},
 	})
 }
 
