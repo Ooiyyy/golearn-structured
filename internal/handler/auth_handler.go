@@ -3,10 +3,10 @@
 package handler
 
 import (
-	"encoding/json"
 	"golearn-structured/internal/service"
-	"golearn-structured/internal/utils"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 // AuthHandler mendefinisikan bentuk sebuah kumpulan rute Handler untuk Autentikasi (Pendaftaran dsb).
@@ -22,7 +22,7 @@ func NewAuthHandler(s *service.UserService, secret []byte) *AuthHandler {
 
 // Login merupakan handler (petugas yang menangani rute) ketika URL rute /login dipanggil.
 // Parameter `w http.ResponseWriter` adalah surat balasan dan `r *http.Request` adalah surat pertanyaan dari Browser klien.
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Login(c *gin.Context) {
 	// 1. Buat cetakan tipe data anonim untuk menampung variabel JSON dari input body
 	var req struct {
 		Username string `json:"username"`
@@ -30,9 +30,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. Decode atau menerjemahkan nilai payload request "r.Body" bahasa JSON HTTP agar dimengerti menjadi variabel struct Go bernama "&req"
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		// http.Error(w, err.Error(), 400)
-		utils.Error(w, http.StatusBadRequest, err.Error())
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		// Error 400 Bad Request jika gagal dibaca
 		return
 	}
@@ -41,8 +42,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	token, err := h.service.Login(req.Username, req.Password, h.secret)
 	if err != nil {
 		// Kalau gagal login akibat password salah dari service, kembalikan 401 (Tidak Diizinkan Akses)
-		// http.Error(w, err.Error(), 401)
-		utils.Error(w, http.StatusUnauthorized, err.Error())
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
@@ -50,22 +52,23 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// json.NewEncoder(w).Encode(map[string]string{
 	// 	"token": token,
 	// })
-	utils.Success(w, map[string]string{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "login berhasil",
 		"token":   token,
 	})
 }
 
 // Register untuk mendaftarkan akun.
-func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Register(c *gin.Context) {
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		// http.Error(w, err.Error(), 400)
-		utils.Error(w, http.StatusBadRequest, err.Error())
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
@@ -73,44 +76,45 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	err := h.service.Register(req.Username, req.Password)
 	if err != nil {
 		// http.Error(w, err.Error(), 400)
-		utils.Error(w, http.StatusBadRequest, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
 	// Bila mulus tanpa eror, berikan pesan sukses.
-	utils.Success(w, map[string]string{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "user berhasil dibuat",
 	})
-	// json.NewEncoder(w).Encode(map[string]string{
-	// 	"message": "user berhasil dibuat",
-	// })
 }
 
 // Profile menampilkan "Siapa yang sedang login ini" sesudahnya token dilampirkan.
-func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Profile(c *gin.Context) {
 	// Ingat variabel r.Context() yang didekorasi pada Middleware JWT kita?
 	// Kini bagian profil bisa menyadap `username` dari latar belakang Konteks data tersebut dengan pasti!
 	// Kode `.(string)` dinamakan "Type Assertion", memastikan pemaksaan tipenya adalah string.
-	username := r.Context().Value("username").(string)
+	username := c.GetString("username")
 
 	// Ambil keterangan data pribadi dari MySQL lewat jembatan Service -> Repository.
 	user, err := h.service.GetProfile(username)
 	if err != nil {
 		// Kali ini menggunakan utils dari fungsi utils/response.go yang dibuat spesifik agar lebih estetik format JSON kembaliannya.
-		utils.Error(w, http.StatusUnauthorized, err.Error())
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
 	// Gunakan alat tolong kembalikan Success dengan memanggil helper utils.
-	utils.Success(w, map[string]string{
-		"username": user, // Balas {"username": "nama yang disisipkan"}
+	c.JSON(http.StatusOK, gin.H{
+		"username": user,
 	})
 }
 
 // Logout digunakan untuk merespon bahwa mematikan sistem
-func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Logout(c *gin.Context) {
 	// Note: di JWT, logout idealnya dihapus di level browser (Storage), back-end cukup membalas sukses kalau tidak pakai redis!
-	utils.Success(w, map[string]string{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "logout berhasil",
 	})
 }

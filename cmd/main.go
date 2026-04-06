@@ -9,7 +9,7 @@ import (
 	"golearn-structured/internal/repository"
 	"golearn-structured/internal/service"
 
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
 // jwtSecret adalah kunci rahasia yang digunakan untuk membuat dan memvalidasi token JWT.
@@ -20,28 +20,33 @@ var jwtSecret = []byte("secret123")
 func main() {
 	// 1. Menghubungkan ke database MySQL
 	db := config.Connect()
-	
+
 	// 2. Inisiasi Repository (Komponen yang bertugas langsung berinteraksi dengan database / SQL)
 	repo := repository.NewUserRepository(db)
-	
+
 	// 3. Inisiasi Service (Komponen yang bertugas menangani logika bisnis, seperti validasi password, hashing)
 	service := service.NewUserService(repo)
-	
+
 	// 4. Inisiasi Handler (Komponen yang bertugas menerima dan membalas request HTTP dari user)
 	handler := handler.NewAuthHandler(service, jwtSecret)
 
 	// 5. Mendaftarkan rute-rute (endpoint) aplikasi kita
-	
+	r := gin.Default()
+
 	// Rute Publik (tidak perlu login)
-	http.HandleFunc("/login", handler.Login)
-	http.HandleFunc("/register", handler.Register)
-	
+	r.POST("/login", handler.Login)
+	r.POST("/register", handler.Register)
+
 	// Rute Privat (WAJIB login, maka dibungkus dilindungi dengan func middleware.JWT)
-	http.HandleFunc("/profile", middleware.JWT(jwtSecret)(handler.Profile))
-	http.HandleFunc("/logout", middleware.JWT(jwtSecret)(handler.Logout))
+	protected := r.Group("/")
+	protected.Use(middleware.JWT(jwtSecret))
+	{
+		protected.GET("/profile", handler.Profile)
+		protected.POST("/logout", handler.Logout)
+	}
 
 	// 6. Menjalankan server HTTP pada port 8080
 	fmt.Println("Server jalan di :8080")
 	// ListenAndServe akan membuat program berjalan terus untuk mendengarkan koneksi yang masuk
-	http.ListenAndServe(":8080", nil) 
+	r.Run(":8080")
 }
