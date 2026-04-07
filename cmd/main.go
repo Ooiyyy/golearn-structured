@@ -23,6 +23,9 @@ func main() {
 
 	// 2. Inisiasi Repository (Komponen yang bertugas langsung berinteraksi dengan database / SQL)
 	repo := repository.NewUserRepository(db)
+	todoRepo := repository.NewTodoRepository(db)
+	todoService := service.NewTodoService(todoRepo)
+	todoHandler := handler.NewTodoHandlers(todoService)
 
 	// 3. Inisiasi Service (Komponen yang bertugas menangani logika bisnis, seperti validasi password, hashing)
 	service := service.NewUserService(repo)
@@ -33,10 +36,16 @@ func main() {
 	// 5. Mendaftarkan rute-rute (endpoint) aplikasi kita
 	r := gin.Default()
 
+	r.Static("/uploads", "./uploads")
+
 	// Rute Publik (tidak perlu login)
 	r.POST("/login", handler.Login)
 	r.POST("/register", handler.Register)
 
+	r.POST("/todos", todoHandler.Create)
+	r.GET("/todos", todoHandler.GetAll)
+	r.PATCH("/todos/:id", todoHandler.Update)
+	r.DELETE("/todos/:id", todoHandler.DeleteTodo)
 	// Rute Privat (WAJIB login, maka dibungkus dilindungi dengan func middleware.JWT)
 	protected := r.Group("/")
 	protected.Use(middleware.JWT(jwtSecret))
