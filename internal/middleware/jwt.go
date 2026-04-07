@@ -12,7 +12,7 @@ import (
 
 // JWT merupakan fungsi dekorator pemblokir untuk memastikan rute memiliki token aktif.
 // Middleware menerima Handler asli (next) lalu merapikannya dalam fungsi HTTP lain baru.
-func JWT(secret []byte) gin.HandlerFunc {
+func JWT(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Inilah handler yang kita kembalikan secara "dibungkus"
 		// 1. Cek isi text header Authorization
@@ -31,7 +31,7 @@ func JWT(secret []byte) gin.HandlerFunc {
 
 		// 2. Parse mendeteksi isi token, dan memastikan kata sandinya (secret) sama persis!
 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-			return secret, nil
+			return jwtSecret, nil
 		})
 
 		// 3. Jika tokennya palsu, sudah kadaluwarsa, atau error syntax, maka diblokir

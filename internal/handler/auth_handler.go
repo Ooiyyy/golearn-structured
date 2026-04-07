@@ -3,6 +3,7 @@
 package handler
 
 import (
+	"golearn-structured/internal/dto"
 	"golearn-structured/internal/service"
 	"net/http"
 
@@ -11,24 +12,20 @@ import (
 
 // AuthHandler mendefinisikan bentuk sebuah kumpulan rute Handler untuk Autentikasi (Pendaftaran dsb).
 type AuthHandler struct {
-	service *service.UserService // Logika bisnis mengecek login ada di dalam ruang kerja service ini
-	secret  []byte               // Kata kunci JWT yang harus disetor saat pengaksesan token login.
+	service   *service.UserService // Logika bisnis mengecek login ada di dalam ruang kerja service ini
+	jwtSecret string               // Kata kunci JWT yang harus disetor saat pengaksesan token login.
 }
 
 // NewAuthHandler adalah pembuat instansi tipe object AuthHandler secara mudah.
-func NewAuthHandler(s *service.UserService, secret []byte) *AuthHandler {
-	return &AuthHandler{service: s, secret: secret}
+func NewAuthHandler(s *service.UserService, jwtSecret string) *AuthHandler {
+	return &AuthHandler{service: s, jwtSecret: jwtSecret}
 }
 
 // Login merupakan handler (petugas yang menangani rute) ketika URL rute /login dipanggil.
 // Parameter `w http.ResponseWriter` adalah surat balasan dan `r *http.Request` adalah surat pertanyaan dari Browser klien.
 func (h *AuthHandler) Login(c *gin.Context) {
 	// 1. Buat cetakan tipe data anonim untuk menampung variabel JSON dari input body
-	var req struct {
-		ID       int    `json:"id"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+	var req dto.AuthloginRequest
 
 	// 2. Decode atau menerjemahkan nilai payload request "r.Body" bahasa JSON HTTP agar dimengerti menjadi variabel struct Go bernama "&req"
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -40,7 +37,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// 3. Masukkan datanya dan jalankan Logika Bisnis (Login) di file Service
-	token, err := h.service.Login(req.Username, req.Password, h.secret)
+	token, err := h.service.Login(req.Username, req.Password, []byte(h.jwtSecret))
 	if err != nil {
 		// Kalau gagal login akibat password salah dari service, kembalikan 401 (Tidak Diizinkan Akses)
 		c.JSON(http.StatusUnauthorized, gin.H{

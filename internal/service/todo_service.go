@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"golearn-structured/internal/model"
 	"golearn-structured/internal/repository"
 	"os"
 	"strings"
@@ -20,7 +21,7 @@ func (s *TodoService) CreateTodo(userID int, title, note, ImageUrl string) error
 		return fmt.Errorf("Judul wajib diisi")
 	}
 
-	todo := repository.Todo{
+	todo := model.Todo{
 		UserID:   userID,
 		Title:    title,
 		Note:     note,
@@ -29,7 +30,7 @@ func (s *TodoService) CreateTodo(userID int, title, note, ImageUrl string) error
 	return s.repo.Create(todo)
 }
 
-func (s *TodoService) GetUserTodos(userID int) ([]repository.Todo, error) {
+func (s *TodoService) GetUserTodos(userID int) ([]model.Todo, error) {
 	return s.repo.GetAllByUserID(userID)
 }
 
