@@ -1,5 +1,4 @@
-// Package repository difokuskan HANYA untuk berkomunikasi dengan database.
-// Di dunia Clean Architecture, lapisan ini adalah lapisan yang langsung memanipulasi penyimpanan fisik (SQL).
+// Package repository fokus pada detail SQL dan persistence.
 package repository
 
 import "database/sql"
@@ -21,12 +20,13 @@ func (r *UserRepository) GetByUsername(username string) (int, string, string, er
 
 	// QueryRow digunakan untuk mengambil tepat SATU baris data (karena hasil username pasti satu).
 	// Scan() menyalin data dari kolom hasil database ke alamat memori variabel 'user' dan 'password'.
+	// QueryRow cocok untuk single-record query; Scan butuh pointer sebagai target.
 	err := r.DB.QueryRow("SELECT id, username, password FROM users WHERE username = ?", username).Scan(&userID, &user, &password)
 
 	return userID, user, password, err // Return nilai sekaligus dengan tipe yang dijanjikan
 }
 
-// IsUserExist mengecek apakah username tertentu sudah pernah di daftarkan.
+// IsUserExist dipakai service untuk rule "username unik".
 func (r *UserRepository) IsUserExist(username string) bool {
 	var existing string
 	// Coba cari data tersebut

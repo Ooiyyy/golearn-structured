@@ -9,11 +9,15 @@ import (
 )
 
 func Run() {
+	// 1) Load konfigurasi runtime (port, JWT secret, kredensial DB) dari env.
 	cfg := config.LoadEnv()
 	port := cfg.App.AppPort
 	jwtSecret := cfg.App.JWTSecret
+	// 2) Buka koneksi DB pool sekali saat startup, dipakai bersama di semua request.
 	db := config.ConnectDB(cfg.DB)
 
+	// 3) Rangkai dependensi dari lapisan paling bawah ke atas:
+	// repository -> service -> handler.
 	userRepo := repository.NewUserRepository(db)
 	todoRepo := repository.NewTodoRepository(db)
 
@@ -29,5 +33,6 @@ func Run() {
 		jwtSecret,
 	)
 
+	// 4) Mulai HTTP server. Setelah ini request masuk via router Gin.
 	r.Run(":" + port)
 }

@@ -24,32 +24,27 @@ func NewAuthHandler(s *service.UserService, jwtSecret string) *AuthHandler {
 // Login merupakan handler (petugas yang menangani rute) ketika URL rute /login dipanggil.
 // Parameter `w http.ResponseWriter` adalah surat balasan dan `r *http.Request` adalah surat pertanyaan dari Browser klien.
 func (h *AuthHandler) Login(c *gin.Context) {
-	// 1. Buat cetakan tipe data anonim untuk menampung variabel JSON dari input body
+	// Request pertama kali diterima di handler lewat gin.Context (c).
 	var req dto.AuthloginRequest
 
-	// 2. Decode atau menerjemahkan nilai payload request "r.Body" bahasa JSON HTTP agar dimengerti menjadi variabel struct Go bernama "&req"
+	// Bind JSON body ke DTO; pointer (&req) dipakai agar Gin mengisi struct langsung.
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
-		// Error 400 Bad Request jika gagal dibaca
 		return
 	}
 
-	// 3. Masukkan datanya dan jalankan Logika Bisnis (Login) di file Service
+	// Delegasikan business logic ke service: handler fokus pada HTTP I/O.
 	token, err := h.service.Login(req.Username, req.Password, []byte(h.jwtSecret))
 	if err != nil {
-		// Kalau gagal login akibat password salah dari service, kembalikan 401 (Tidak Diizinkan Akses)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
 
-	// 4. Kalau berhasil dapat token sakti, ubahlah menjadi JSON (Encode) ke `w` agar browser pengguna bisa menerimanya!
-	// json.NewEncoder(w).Encode(map[string]string{
-	// 	"token": token,
-	// })
+	// Response dikembalikan ke client dari sini dalam format JSON.
 	c.JSON(http.StatusOK, gin.H{
 		"message": "login berhasil",
 		"token":   token,
@@ -70,7 +65,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// Meminta service membanting tulang untuk daftarkan user
+	// Service mengeksekusi validasi bisnis + simpan data via repository.
 	err := h.service.Register(req.Username, req.Password)
 	if err != nil {
 		// http.Error(w, err.Error(), 400)
@@ -80,7 +75,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// Bila mulus tanpa eror, berikan pesan sukses.
+	// Titik akhir lifecycle endpoint register: kirim status sukses.
 	c.JSON(http.StatusOK, gin.H{
 		"message": "user berhasil dibuat",
 	})
@@ -88,23 +83,20 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 // Profile menampilkan "Siapa yang sedang login ini" sesudahnya token dilampirkan.
 func (h *AuthHandler) Profile(c *gin.Context) {
-	// Ingat variabel r.Context() yang didekorasi pada Middleware JWT kita?
-	// Kini bagian profil bisa menyadap `username` dari latar belakang Konteks data tersebut dengan pasti!
-	// Kode `.(string)` dinamakan "Type Assertion", memastikan pemaksaan tipenya adalah string.
+	// Data user ini disisipkan middleware JWT setelah token valid.
 	id := c.GetInt("id")
 	username := c.GetString("username")
 
-	// Ambil keterangan data pribadi dari MySQL lewat jembatan Service -> Repository.
+	// Alur tetap konsisten: handler -> service -> repository.
 	id, user, err := h.service.GetProfile(id, username)
 	if err != nil {
-		// Kali ini menggunakan utils dari fungsi utils/response.go yang dibuat spesifik agar lebih estetik format JSON kembaliannya.
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
 
-	// Gunakan alat tolong kembalikan Success dengan memanggil helper utils.
+	// Response profile dikembalikan sebagai JSON object bersarang.
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
 			"id":       id,

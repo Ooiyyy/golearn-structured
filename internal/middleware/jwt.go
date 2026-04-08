@@ -12,10 +12,10 @@ import (
 
 // JWT merupakan fungsi dekorator pemblokir untuk memastikan rute memiliki token aktif.
 // Middleware menerima Handler asli (next) lalu merapikannya dalam fungsi HTTP lain baru.
+// JWT mengembalikan gin.HandlerFunc (closure) yang menangkap jwtSecret.
 func JWT(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Inilah handler yang kita kembalikan secara "dibungkus"
-		// 1. Cek isi text header Authorization
+		// 1) Request dicek dulu pada header Authorization.
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			// JIKA dikosongkan (tanpa token), kita tolak akses.
@@ -27,14 +27,15 @@ func JWT(jwtSecret string) gin.HandlerFunc {
 		}
 
 		// Format yang benar adalah "Bearer <tokennya>". Hapus tulisan Bearernya agar bersih.
+		// 2) Ambil token mentah dari format Bearer.
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// 2. Parse mendeteksi isi token, dan memastikan kata sandinya (secret) sama persis!
+		// 3. Parse mendeteksi isi token, dan memastikan kata sandinya (secret) sama persis!
 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 			return jwtSecret, nil
 		})
 
-		// 3. Jika tokennya palsu, sudah kadaluwarsa, atau error syntax, maka diblokir
+		// 4. Jika tokennya palsu, sudah kadaluwarsa, atau error syntax, maka diblokir
 		if err != nil || !token.Valid {
 			// http.Error(w, "Token tidak valid", http.StatusUnauthorized)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -43,7 +44,7 @@ func JWT(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		// 4. Baca catatan klaim (isinya saat dibuat di fungsi Login Service)
+		// 5. Ambil claims dari token.
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			// http.Error(w, "Token tidak Valid", http.StatusUnauthorized)
@@ -63,7 +64,7 @@ func JWT(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		// 5. Setelah lulus semua filter, kita selipkan nilai variabel `username` ke dalam "Konteks Latar" (Context).
+		// 6. Setelah lulus semua filter, kita selipkan nilai variabel `username` ke dalam "Konteks Latar" (Context).
 		// Supaya handler rute asli selanjutnya tahu username siapa yang sedang membuka URL ini.
 		// ctx := context.WithValue(r.Context(), "username", username)
 		c.Set("username", username)
@@ -72,8 +73,9 @@ func JWT(jwtSecret string) gin.HandlerFunc {
 			c.Set("id", int(idFloat))
 		}
 
-		// 6. Jalankan "next" yang berarti Handler inti (misal file handler.Profile) dipersilahkan berjalan dengan context lengkap.
+		// 7. Jalankan "next" yang berarti Handler inti (misal file handler.Profile) dipersilahkan berjalan dengan context lengkap.
 		// next(w, r.WithContext(ctx))
+		// Lanjutkan request ke handler tujuan.
 		c.Next()
 	}
 }

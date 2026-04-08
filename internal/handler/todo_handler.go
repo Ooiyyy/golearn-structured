@@ -21,11 +21,13 @@ func NewTodoHandlers(s *service.TodoService) *TodoHandler {
 }
 
 func (h *TodoHandler) Create(c *gin.Context) {
+	// Request create todo diterima di handler ini.
 	// with jwt
 	// userID := c.GetInt("id")
 	// without jwt
 	userID := 5
 
+	// Input dibaca dari multipart/form-data.
 	title := c.PostForm("title")
 	note := c.PostForm("note")
 	file, err := c.FormFile("image")
@@ -33,6 +35,7 @@ func (h *TodoHandler) Create(c *gin.Context) {
 	uploadPath := ""
 
 	if err == nil {
+		// Simpan file upload ke folder lokal, lalu bentuk URL publiknya.
 		filename := fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(file.Filename))
 		uploadPath = "uploads/" + filename
 		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
@@ -46,6 +49,7 @@ func (h *TodoHandler) Create(c *gin.Context) {
 
 	err = h.service.CreateTodo(userID, title, note, imageURL)
 	if err != nil {
+		// Rollback file jika validasi bisnis gagal setelah upload.
 		if uploadPath != "" {
 			os.Remove(uploadPath)
 		}
@@ -60,6 +64,7 @@ func (h *TodoHandler) Create(c *gin.Context) {
 }
 
 func (h *TodoHandler) GetAll(c *gin.Context) {
+	// Handler membaca query param, lalu delegasi ambil data ke service.
 	// with jwt
 	// userID := c.GetInt("id")
 
@@ -74,6 +79,7 @@ func (h *TodoHandler) GetAll(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
+		// Response akhir selalu dikirim dari handler dalam bentuk JSON.
 		"data": todos,
 	})
 }
@@ -108,6 +114,7 @@ func (h *TodoHandler) GetAll(c *gin.Context) {
 // }
 
 func (h *TodoHandler) Update(c *gin.Context) {
+	// Ambil identitas user + todo target dari request URL/query.
 	userStr := c.Query("userid")
 	userID, _ := strconv.Atoi(userStr)
 
@@ -122,6 +129,7 @@ func (h *TodoHandler) Update(c *gin.Context) {
 	uploadPath := ""
 
 	if err == nil {
+		// Jika ada file baru, upload dulu sebelum business update diproses.
 		filename := fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(file.Filename))
 		uploadPath = "uploads/" + filename
 		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
@@ -133,6 +141,7 @@ func (h *TodoHandler) Update(c *gin.Context) {
 	err = h.service.EditTodo(todoID, userID, title, note, imageURL)
 
 	if err != nil {
+		// Hapus file baru jika update gagal agar storage tidak kotor.
 		if uploadPath != "" {
 			os.Remove(uploadPath)
 		}
@@ -143,6 +152,7 @@ func (h *TodoHandler) Update(c *gin.Context) {
 }
 
 func (h *TodoHandler) DeleteTodo(c *gin.Context) {
+	// Endpoint delete: parse param, panggil service, lalu kirim status response.
 	userStr := c.Query("userid")
 	userID, _ := strconv.Atoi(userStr)
 

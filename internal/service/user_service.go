@@ -13,6 +13,7 @@ import (
 )
 
 // UserService menyimpan pointer ke repository agar UserService bisa meminta repository menyimpan/mengambil data dari DB.
+// UserService adalah lapisan business logic; tidak tahu detail HTTP.
 type UserService struct {
 	repo *repository.UserRepository
 }
