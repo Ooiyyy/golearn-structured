@@ -32,7 +32,7 @@ func (s *TodoService) CreateTodo(userID int, title, note, ImageUrl string) error
 	return s.repo.Create(todo)
 }
 
-func (s *TodoService) GetUserTodos(userID int) ([]model.Todo, error) {
+func (s *TodoService) GetUserTodos(userID int) ([]*model.Todo, error) {
 	// Service tetap tipis saat tidak ada aturan tambahan.
 	return s.repo.GetAllByUserID(userID)
 }

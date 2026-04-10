@@ -26,13 +26,17 @@ func NewUserService(r repository.UserRepository) *UserService {
 // Login memvalidasi username dan password, serta mengembalikan Token JWT jika berhasil.
 func (s *UserService) Login(username, password string, secret []byte) (string, error) {
 	// 1. Ambil data user dari tabel berdasarkan nama.
-	id, user, hashed, err := s.repo.GetByUsername(username)
+	// Variabel 'user' di sini sekarang berwujud POINTER (hanya menyimpan alamat aslinya)
+	// Pointer mengizinkan variabel user menjadi 'nil' jika database mengembalikan kosong.
+	user, err := s.repo.GetByUsername(username)
 	if err != nil {
 		return "", fmt.Errorf("username atau password salah")
 	}
 
 	// 2. Bandingkan password asli yang direquest dengan password hashing yang ada di database.
-	err = bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
+	// Hebatnya di Golang, jika `user` itu Pointer, Anda tetap bisa menuliskan `user.Password` langsung!
+	// Go akan diam-diam mengunjungi alamat memorinya dan menarik nilainya untuk Anda.
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return "", fmt.Errorf("username atau password salah")
 	}
@@ -40,8 +44,8 @@ func (s *UserService) Login(username, password string, secret []byte) (string, e
 	// 3. Jika berhasil login, atur klaim (isi konten) untuk Token JWT ini (JWT claims).
 	// Token diatur expired atau kadaluwarsa dalam 1 jam ke depan untuk keamanan.
 	claims := jwt.MapClaims{
-		"id":       id,
-		"username": user,
+		"id":       user.ID,
+		"username": user.Username,
 		"exp":      time.Now().Add(time.Hour * 1).Unix(),
 	}
 

@@ -20,7 +20,7 @@ func (r *todoRepositoryImpl) Create(todo model.Todo) error {
 	return err
 }
 
-func (r *todoRepositoryImpl) GetAllByUserID(userID int) ([]model.Todo, error) {
+func (r *todoRepositoryImpl) GetAllByUserID(userID int) ([]*model.Todo, error) {
 
 	// Query mengembalikan banyak baris todo milik satu user.
 	rows, err := r.DB.Query("SELECT id, user_id, title, note, image_url FROM todos WHERE user_id = ?", userID)
@@ -29,14 +29,16 @@ func (r *todoRepositoryImpl) GetAllByUserID(userID int) ([]model.Todo, error) {
 	}
 	defer rows.Close()
 
-	var todos []model.Todo
+	var todos []*model.Todo
 	for rows.Next() {
-		var t model.Todo
+		var t model.Todo // Struct lokal penampung yang tere-create baru di setiap siklus perulangan.
 
 		// Scan menyalin kolom SQL ke field struct via pointer.
 		err := rows.Scan(&t.ID, &t.UserID, &t.Title, &t.Note, &t.ImageUrl)
 		if err == nil {
-			todos = append(todos, t)
+			// '&t' mengirimkan *alamat memori* si todo ini untuk dititipkan ke dalam rak slide todos!
+			// Laci slice todos kita isinya super ringan karena dia cuma berisi tumpukan kertas "alamat" saja.
+			todos = append(todos, &t)
 		}
 	}
 	return todos, nil

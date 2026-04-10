@@ -3,6 +3,8 @@ package mysql
 
 import (
 	"database/sql"
+	"fmt"
+	"golearn-structured/internal/model"
 	"golearn-structured/internal/repository"
 )
 
@@ -17,16 +19,28 @@ func NewUserRepository(db *sql.DB) repository.UserRepository {
 }
 
 // GetByUsername mengambil data username dan password berdasarkan nama user.
-func (r *userRepositoryImpl) GetByUsername(username string) (int, string, string, error) {
-	var user, password string
-	var userID int
+func (r *userRepositoryImpl) GetByUsername(username string) (*model.Users, error) {
+	var user model.Users
 
 	// QueryRow digunakan untuk mengambil tepat SATU baris data (karena hasil username pasti satu).
 	// Scan() menyalin data dari kolom hasil database ke alamat memori variabel 'user' dan 'password'.
 	// QueryRow cocok untuk single-record query; Scan butuh pointer sebagai target.
-	err := r.DB.QueryRow("SELECT id, username, password FROM users WHERE username = ?", username).Scan(&userID, &user, &password)
+	err := r.DB.QueryRow("SELECT id, username, password FROM users WHERE username = ?", username).Scan(&user.ID, &user.Username, &user.Password)
 
-	return userID, user, password, err // Return nilai sekaligus dengan tipe yang dijanjikan
+	// Inilah cara membuat Pointer menjadi 'nil'!
+	// Jika ada error (termasuk jika data tidak ditemukan), kita cegah kode lanjut ke bawah.
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Jika error-nya spesifik karena baris tidak ketemu, kembailkan "nil" sebagai usernya
+			return nil, fmt.Errorf("user tidak ditemukan")
+		}
+		// Apabila error lainnya (misal koneksi terputus)
+		return nil, err
+	}
+
+	// Operator '&' digunakan untuk mengambil "ALAMAT MEMORI" lokasi data struct user yang baru diisi datanya di atas.
+	// Alamat memori inilah (Pointer) yang kita serahkan kembali untuk dikonsumsi layer Service.
+	return &user, nil
 }
 
 // IsUserExist dipakai service untuk rule "username unik".
