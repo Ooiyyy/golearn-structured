@@ -15,11 +15,11 @@ import (
 // UserService menyimpan pointer ke repository agar UserService bisa meminta repository menyimpan/mengambil data dari DB.
 // UserService adalah lapisan business logic; tidak tahu detail HTTP.
 type UserService struct {
-	repo *repository.UserRepository
+	repo repository.UserRepository
 }
 
 // NewUserService adalah constructor (fungsi pembuat object utama) untuk UserService.
-func NewUserService(r *repository.UserRepository) *UserService {
+func NewUserService(r repository.UserRepository) *UserService {
 	return &UserService{repo: r}
 }
 

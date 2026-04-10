@@ -3,7 +3,7 @@ package bootstrap
 import (
 	"golearn-structured/config"
 	"golearn-structured/internal/handler"
-	"golearn-structured/internal/repository"
+	"golearn-structured/internal/repository/mysql"
 	"golearn-structured/internal/routes"
 	"golearn-structured/internal/service"
 )
@@ -18,8 +18,8 @@ func Run() {
 
 	// 3) Rangkai dependensi dari lapisan paling bawah ke atas:
 	// repository -> service -> handler.
-	userRepo := repository.NewUserRepository(db)
-	todoRepo := repository.NewTodoRepository(db)
+	userRepo := mysql.NewUserRepository(db)
+	todoRepo := mysql.NewTodoRepository(db)
 
 	userService := service.NewUserService(userRepo)
 	todoService := service.NewTodoService(todoRepo)

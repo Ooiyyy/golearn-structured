@@ -9,10 +9,10 @@ import (
 )
 
 type TodoService struct {
-	repo *repository.TodoRepository
+	repo repository.TodoRepository
 }
 
-func NewTodoService(repo *repository.TodoRepository) *TodoService {
+func NewTodoService(repo repository.TodoRepository) *TodoService {
 	return &TodoService{repo: repo}
 }
 
