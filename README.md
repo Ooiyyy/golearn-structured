@@ -8,7 +8,7 @@ Di bawah ini adalah penjelasan sederhana khusus disediakan untuk *Pemula Go* dar
 ## 📁 `cmd/`
 - **Fungsi:** Titik utama di mana program ini mulai dijalankan `(go run cmd/main.go)`.
 - **Isi:** Biasanya berisi file `main.go`. Isinya nyaris cuma deklarasi variabel rahasia, pemanggilan koneksi database, inisiasi modul lain, lalu "dijahit" rute endpointnya bersama-sama.
-- **Analogi:** Seperti "Gerbang Pintu Masuk" dari sebuah pabrik.
+- **Analogi:** Seperti "Gerbang Pintu Masuk" dari sebuah pabrikk.
 
 ## 📁 `config/`
 - **Fungsi:** Berisi konfigurasi global aplikasi.
